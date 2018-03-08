@@ -1,0 +1,148 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "apimName": {
+      "type": "string",
+      "defaultValue": "{{app.apim.name}}"
+    },
+    "publisherEmail": {
+      "type": "string",
+      "defaultValue": "{{app.apim.publisherEmail}}"
+    },
+    "publisherName": {
+      "type": "string",
+      "defaultValue": "{{app.apim.publisherName}}"
+    },
+    "sku": {
+      "type": "string",
+      "allowedValues": [
+        "Developer",
+        "Standard",
+        "Premium"
+      ],
+      "defaultValue": "{{app.apim.sku}}"
+    },
+    "skuCount": {
+      "type": "int",
+      "defaultValue": "[int({{app.apim.skuCount}})]"
+    },
+    "proxyHostname": {
+      "type": "string",
+      "defaultValue": "{{app.apim.domain}}"
+    },
+    "portalHostname": {
+      "type": "string",
+      "defaultValue": "{{app.apim.portalSubdomain}}.{{app.apim.domain}}"
+    },
+    "scmHostname": {
+      "type": "string",
+      "defaultValue": "{{app.apim.scmSubdomain}}.{{app.apim.domain}}"
+    },
+    "sslCert": {
+      "type": "securestring"
+    },
+    "networkingRg": {
+      "type": "string",
+      "defaultValue": "{{networking.rg}}"
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.vnetName}}"
+    },
+    "subnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.apimSubnetName}}"
+    },
+    "monitoringGroup": {
+      "type": "string",
+      "defaultValue": "{{monitoring.rg}}"
+    },
+    "omsWorkspace": {
+      "type": "string",
+      "defaultValue": "{{monitoring.omsWorkspaceName}}"
+    },
+    "logsStorageAccount": {
+      "type": "string",
+      "defaultValue": "{{monitoring.logsStorageAccountName}}"
+    },
+    "diagnosticLogsRetention": {
+      "type": "int",
+      "defaultValue": "[int({{monitoring.retention.apim}})]"
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": "[json('{{json app.tags}}')]"
+    }
+  },
+  "variables": {
+    "vnetId": "[resourceId(parameters('networkingRg'), 'Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+    "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('subnetName'))]"
+  },
+  "resources": [
+    {
+      "name": "[parameters('apimName')]",
+      "type": "Microsoft.ApiManagement/service",
+      "apiVersion": "2017-03-01",
+      "location": "[resourceGroup().location]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "[parameters('sku')]",
+        "capacity": "[parameters('skuCount')]"
+      },
+      "properties": {
+        "publisherEmail": "[parameters('publisherEmail')]",
+        "publisherName": "[parameters('publisherName')]",
+        "hostnameConfigurations": [
+          {
+            "type": "Proxy",
+            "hostName": "[parameters('proxyHostname')]",
+            "encodedCertificate": "[parameters('sslCert')]"
+          },
+          {
+            "type": "Portal",
+            "hostName": "[parameters('portalHostname')]",
+            "encodedCertificate": "[parameters('sslCert')]"
+          },
+          {
+            "type": "SCM",
+            "hostName": "[parameters('scmHostname')]",
+            "encodedCertificate": "[parameters('sslCert')]"
+          }
+        ],
+        "virtualNetworkType": "Internal",
+        "virtualNetworkConfiguration": {
+          "subnetResourceId": "[variables('subnetId')]",
+          "location": "[resourceGroup().location]"
+        },
+        "customProperties": {
+          "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Ciphers.TripleDes168": false,
+          "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls11": false,
+          "Microsoft.WindowsAzure.ApiManagement.Gateway.Security.Protocols.Tls10": false
+        }
+      },
+      "resources": [
+        {
+          "type": "providers/diagnosticSettings",
+          "name": "Microsoft.Insights/service",
+          "apiVersion": "2015-07-01",
+          "dependsOn": ["[parameters('apimName')]"],
+          "properties": {
+            "workspaceId": "[resourceId(parameters('monitoringGroup'), 'Microsoft.OperationalInsights/workspaces', parameters('omsWorkspace'))]",
+            "storageAccountId": "[resourceId(parameters('monitoringGroup'), 'Microsoft.Storage/storageAccounts', parameters('logsStorageAccount'))]",
+            "logs": [
+              {
+                "category": "GatewayLogs",
+                "enabled": true,
+                "retentionPolicy": {
+                  "days": "[parameters('diagnosticLogsRetention')]",
+                  "enabled": true
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

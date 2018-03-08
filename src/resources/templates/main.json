@@ -1,0 +1,237 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "templatesUrl": {
+      "type": "securestring",
+      "defaultValue": "{{templatesUrl}}"
+    },
+    "templatesToken": {
+      "type": "securestring",
+      "defaultValue": "{{templatesToken}}"
+    },
+    "monitoringRg": {
+      "type": "string",
+      "defaultValue": "{{monitoring.rg}}"
+    },
+    "networkingRg": {
+      "type": "string",
+      "defaultValue": "{{networking.rg}}"
+    },
+    "appRg": {
+      "type": "string",
+      "defaultValue": "{{app.rg}}"
+    },
+    "secretsRg": {
+      "type": "string",
+      "defaultValue": "{{secrets.rg}}"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "defaultValue": "{{secrets.keyVaultName}}"
+    },
+    "apiSslCertSecretName": {
+      "type": "string",
+      "defaultValue": "{{app.apim.cert.name}}"
+    },
+    "aseSslCertSecretName": {
+      "type": "string",
+      "defaultValue": "{{app.ase.cert.name}}"
+    },
+    "phases": {
+      "type": "array",
+      "defaultValue": [
+        "init",
+        "deploy"
+      ]
+    }
+  },
+  "variables": {
+    "keyVaultId": "[resourceId(parameters('secretsRg'), 'Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+    "runInit": "[contains(parameters('phases'), 'init')]",
+    "runDeploy": "[contains(parameters('phases'), 'deploy')]"
+  },
+  "resources": [
+    {
+      "name": "monitoring",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('monitoringRg')]",
+      "condition": "[variables('runInit')]",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'monitoring.json', '?', parameters('templatesToken'))]"
+        }
+      }
+    },
+    {
+      "name": "secrets",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('secretsRg')]",
+      "condition": "[variables('runInit')]",
+      "dependsOn": [
+        "monitoring"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'secrets.json', '?', parameters('templatesToken'))]"
+        }
+      }
+    },
+    {
+      "name": "networking-initialization",
+      "comments": "Initialization of networking resources without strict NSGs to allow for ASE creation. Strict NSGs are created later on.",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('networkingRg')]",
+      "condition": "[variables('runInit')]",
+      "dependsOn": [
+        "monitoring",
+        "secrets"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'networking.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "isNew": { "value": true }
+        }
+      }
+    },
+    {
+      "name": "ase",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('appRg')]",
+      "condition": "[variables('runDeploy')]",
+      "dependsOn": [
+        "monitoring",
+        "secrets",
+        "networking-initialization"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'ase.json', '?', parameters('templatesToken'))]"
+        }
+      }
+    },
+    {
+      "name": "apim",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('appRg')]",
+      "condition": "[variables('runDeploy')]",
+      "dependsOn": [
+        "monitoring",
+        "secrets",
+        "networking-initialization"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'apim.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "sslCert": {
+            "reference": {
+              "keyVault": {
+                "id": "[variables('keyVaultId')]"
+              },
+              "secretName": "[parameters('apiSslCertSecretName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "appGateway",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('networkingRg')]",
+      "condition": "[variables('runDeploy')]",
+      "dependsOn": [
+        "monitoring",
+        "secrets",
+        "networking-initialization",
+        "apim"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'gateway.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "gatewayCert": {
+            "reference": {
+              "keyVault": {
+                "id": "[variables('keyVaultId')]"
+              },
+              "secretName": "[parameters('apiSslCertSecretName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "devGateway",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('networkingRg')]",
+      "condition": "[variables('runDeploy')]",
+      "dependsOn": [
+        "monitoring",
+        "secrets",
+        "networking-initialization",
+        "apim"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'dev-gateway.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "apiSSlCert": {
+            "reference": {
+              "keyVault": {
+                "id": "[variables('keyVaultId')]"
+              },
+              "secretName": "[parameters('apiSslCertSecretName')]"
+            }
+          },
+          "aseSSlCert": {
+            "reference": {
+              "keyVault": {
+                "id": "[variables('keyVaultId')]"
+              },
+              "secretName": "[parameters('aseSslCertSecretName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "networking",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('networkingRg')]",
+      "condition": "[variables('runDeploy')]",
+      "dependsOn": [
+        "monitoring",
+        "secrets",
+        "ase",
+        "networking-initialization"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'networking.json', '?', parameters('templatesToken'))]"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,405 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appGatewayName": {
+      "type": "string",
+      "defaultValue": "{{networking.devGateway.name}}"
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "{{networking.devGateway.sku}}"
+    },
+    "capacity": {
+      "type": "int",
+      "defaultValue": "[int({{networking.devGateway.capacity}})]"
+    },
+    "apimProbeHostname": {
+      "type": "string",
+      "defaultValue": "{{app.apim.domain}}"
+    },
+    "apimProbePath": {
+      "type": "string",
+      "defaultValue": "/status-0123456789abcdef"
+    },
+    "aseProbePath": {
+      "type": "string",
+      "defaultValue": "/"
+    },
+    "apiSslCert": {
+      "type": "securestring"
+    },
+    "apiSslPublicKey": {
+      "type": "string",
+      "defaultValue": "{{apiSslPublicKey}}"
+    },
+    "aseSslCert": {
+      "type": "securestring"
+    },
+    "aseSslPublicKey": {
+      "type": "string",
+      "defaultValue": "{{aseSslPublicKey}}"
+    },
+    "aseIpAddress": {
+      "type": "string",
+      "defaultValue": "{{app.ase.ipAddress}}"
+    },
+    "apimName": {
+      "type": "string",
+      "defaultValue": "{{app.apim.name}}"
+    },
+    "apimScmHostname": {
+      "type": "string",
+      "defaultValue": "{{app.apim.scmSubdomain}}.{{app.apim.domain}}"
+    },
+    "apimPortalHostname": {
+      "type": "string",
+      "defaultValue": "{{app.apim.portalSubdomain}}.{{app.apim.domain}}"
+    },
+    "workServiceScmHostname": {
+      "type": "string",
+      "defaultValue": "{{app.workService.name}}.scm.{{app.ase.domain}}"
+    },
+    "appRg": {
+      "type": "string",
+      "defaultValue": "{{app.rg}}"
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.vnetName}}"
+    },
+    "subnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.devGateway.subnetName}}"
+    },
+    "publicIpAddressName": {
+      "type": "string",
+      "defaultValue": "{{networking.devGateway.publicIpName}}"
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": "[json('{{json networking.tags}}')]"
+    },
+    "monitoringGroup": {
+      "type": "string",
+      "defaultValue": "{{monitoring.rg}}"
+    },
+    "omsWorkspace": {
+      "type": "string",
+      "defaultValue": "{{monitoring.omsWorkspaceName}}"
+    },
+    "logsStorageAccount": {
+      "type": "string",
+      "defaultValue": "{{monitoring.logsStorageAccountName}}"
+    },
+    "diagnosticLogsRetention": {
+      "type": "int",
+      "defaultValue": "[int({{monitoring.retention.devGateway}})]"
+    }
+  },
+  "variables": {
+    "apimId": "[resourceId(parameters('appRg'), 'Microsoft.ApiManagement/service', parameters('apimName'))]",
+    "vnetId": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+    "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('subnetName'))]",
+    "publicIpId": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('publicIpAddressName'))]",
+    "gatewayId": "[resourceId('Microsoft.Network/applicationGateways',parameters('appGatewayName'))]"
+  },
+  "resources": [
+    {
+      "name": "[parameters('appGatewayName')]",
+      "type": "Microsoft.Network/applicationGateways",
+      "apiVersion": "2017-06-01",
+      "location": "[resourceGroup().location]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "name": "[parameters('skuName')]",
+          "tier": "Standard",
+          "capacity": "[parameters('capacity')]"
+        },
+        "gatewayIPConfigurations": [
+          {
+            "name": "appGatewayIpConfig",
+            "properties": {
+              "subnet": {
+                "id": "[variables('subnetId')]"
+              }
+            }
+          }
+        ],
+        "frontendIPConfigurations": [
+          {
+            "name": "frontendIp",
+            "properties": {
+              "PublicIPAddress": {
+                "id": "[variables('publicIpId')]"
+              }
+            }
+          }
+        ],
+        "frontendPorts": [
+          {
+            "name": "httpsFrontendPort",
+            "properties": {
+              "Port": 443
+            }
+          }
+        ],
+        "sslCertificates": [
+          {
+            "name": "apiCert",
+            "properties": {
+              "data": "[parameters('apiSslCert')]"
+            }
+          },
+          {
+            "name": "aseCert",
+            "properties": {
+              "data": "[parameters('aseSslCert')]"
+            }
+          }
+        ],
+        "authenticationCertificates": [
+          {
+            "name": "apiAuthCert",
+            "properties": {
+              "data": "[parameters('apiSslPublicKey')]"
+            }
+          },
+          {
+            "name": "aseAuthCert",
+            "properties": {
+              "data": "[parameters('aseSslPublicKey')]"
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "apimBackendPool",
+            "properties": {
+              "BackendAddresses": [
+                {
+                  "IpAddress": "[reference(variables('apimId'), '2018-01-01').privateIPAddresses[0]]"
+                }
+              ]
+            }
+          },
+          {
+            "name": "aseBackendPool",
+            "properties": {
+              "BackendAddresses": [
+                {
+                  "IpAddress": "[parameters('aseIpAddress')]"
+                }
+              ]
+            }
+          }
+        ],
+        "backendHttpSettingsCollection": [
+          {
+            "name": "apimBackendSettings",
+            "properties": {
+              "Port": 443,
+              "Protocol": "Https",
+              "CookieBasedAffinity": "Disabled",
+              "probe": {
+                "id": "[concat(variables('gatewayId'), '/probes/apimHttpsProbe')]"
+              },
+              "authenticationCertificates": [
+                {
+                  "id": "[concat(variables('gatewayId'),'/authenticationCertificates/apiAuthCert')]"
+                }
+              ]
+            }
+          },
+          {
+            "name": "aseBackendSettings",
+            "properties": {
+              "Port": 443,
+              "Protocol": "Https",
+              "CookieBasedAffinity": "Disabled",
+              "probe": {
+                "id": "[concat(variables('gatewayId'), '/probes/aseHttpsProbe')]"
+              },
+              "authenticationCertificates": [
+                {
+                  "id": "[concat(variables('gatewayId'),'/authenticationCertificates/aseAuthCert')]"
+                }
+              ]
+            }
+          }
+        ],
+        "httpListeners": [
+          {
+            "name": "apimScmListener",
+            "properties": {
+              "Hostname": "[parameters('apimScmHostname')]",
+              "FrontendIPConfiguration": {
+                "Id": "[concat(variables('gatewayId'), '/frontendIPConfigurations/frontendIp')]"
+              },
+              "FrontendPort": {
+                "Id": "[concat(variables('gatewayId'), '/frontendPorts/httpsFrontendPort')]"
+              },
+              "Protocol": "Https",
+              "SslCertificate": {
+                "Id": "[concat(variables('gatewayId'), '/sslCertificates/apiCert')]"
+              }
+            }
+          },
+          {
+            "name": "apimPortalListener",
+            "properties": {
+              "Hostname": "[parameters('apimPortalHostname')]",
+              "FrontendIPConfiguration": {
+                "Id": "[concat(variables('gatewayId'), '/frontendIPConfigurations/frontendIp')]"
+              },
+              "FrontendPort": {
+                "Id": "[concat(variables('gatewayId'), '/frontendPorts/httpsFrontendPort')]"
+              },
+              "Protocol": "Https",
+              "SslCertificate": {
+                "Id": "[concat(variables('gatewayId'), '/sslCertificates/apiCert')]"
+              }
+            }
+          },
+          {
+            "name": "workServiceScmListener",
+            "properties": {
+              "Hostname": "[parameters('workServiceScmHostname')]",
+              "FrontendIPConfiguration": {
+                "Id": "[concat(variables('gatewayId'), '/frontendIPConfigurations/frontendIp')]"
+              },
+              "FrontendPort": {
+                "Id": "[concat(variables('gatewayId'), '/frontendPorts/httpsFrontendPort')]"
+              },
+              "Protocol": "Https",
+              "SslCertificate": {
+                "Id": "[concat(variables('gatewayId'), '/sslCertificates/aseCert')]"
+              }
+            }
+          }
+        ],
+        "requestRoutingRules": [
+          {
+            "Name": "apimScmRule",
+            "properties": {
+              "RuleType": "Basic",
+              "httpListener": {
+                "id": "[concat(variables('gatewayId'), '/httpListeners/apimScmListener')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('gatewayId'), '/backendAddressPools/apimBackendPool')]"
+              },
+              "backendHttpSettings": {
+                "id": "[concat(variables('gatewayId'), '/backendHttpSettingsCollection/apimBackendSettings')]"
+              }
+            }
+          },
+          {
+            "Name": "apimPortalRule",
+            "properties": {
+              "RuleType": "Basic",
+              "httpListener": {
+                "id": "[concat(variables('gatewayId'), '/httpListeners/apimPortalListener')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('gatewayId'), '/backendAddressPools/apimBackendPool')]"
+              },
+              "backendHttpSettings": {
+                "id": "[concat(variables('gatewayId'), '/backendHttpSettingsCollection/apimBackendSettings')]"
+              }
+            }
+          },
+          {
+            "Name": "workServiceScmRule",
+            "properties": {
+              "RuleType": "Basic",
+              "httpListener": {
+                "id": "[concat(variables('gatewayId'), '/httpListeners/workServiceScmListener')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('gatewayId'), '/backendAddressPools/aseBackendPool')]"
+              },
+              "backendHttpSettings": {
+                "id": "[concat(variables('gatewayId'), '/backendHttpSettingsCollection/aseBackendSettings')]"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "name": "apimHttpsProbe",
+            "properties": {
+              "protocol": "Https",
+              "host": "[parameters('apimProbeHostname')]",
+              "path": "[parameters('apimProbePath')]",
+              "interval": 30,
+              "timeout": 30,
+              "unhealthyThreshold": 8
+            }
+          },
+          {
+            "name": "aseHttpsProbe",
+            "properties": {
+              "protocol": "Https",
+              "host": "fakehost",
+              "path": "[parameters('aseProbePath')]",
+              "interval": 30,
+              "timeout": 30,
+              "unhealthyThreshold": 8,
+              "match": {
+                "statusCodes": ["200-499"]
+              }
+            }
+          }
+        ],
+        "sslPolicy": {
+          "disabledSslProtocols": [
+            "TLSv1_0",
+            "TLSv1_1"
+          ]
+        }
+      },
+      "resources": [
+        {
+          "type": "providers/diagnosticSettings",
+          "name": "Microsoft.Insights/service",
+          "dependsOn": [
+            "[resourceId('Microsoft.Network/applicationGateways', parameters('appGatewayName'))]"
+          ],
+          "apiVersion": "2016-09-01",
+          "properties": {
+            "workspaceId": "[resourceId(parameters('monitoringGroup'), 'Microsoft.OperationalInsights/workspaces', parameters('omsWorkspace'))]",
+            "storageAccountId": "[resourceId(parameters('monitoringGroup'), 'Microsoft.Storage/storageAccounts', parameters('logsStorageAccount'))]",
+            "logs": [
+              {
+                "category": "ApplicationGatewayAccessLog",
+                "enabled": true,
+                "retentionPolicy": {
+                  "days": "[parameters('diagnosticLogsRetention')]",
+                  "enabled": true
+                }
+              },
+              {
+                "category": "ApplicationGatewayPerformanceLog",
+                "enabled": true,
+                "retentionPolicy": {
+                  "days": "[parameters('diagnosticLogsRetention')]",
+                  "enabled": true
+                }
+              },
+              {
+                "category": "ApplicationGatewayFirewallLog",
+                "enabled": true,
+                "retentionPolicy": {
+                  "days": "[parameters('diagnosticLogsRetention')]",
+                  "enabled": true
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

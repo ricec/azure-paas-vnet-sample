@@ -1,0 +1,595 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "templatesUrl": {
+      "type": "securestring",
+      "defaultValue": "{{templatesUrl}}"
+    },
+    "templatesToken": {
+      "type": "securestring",
+      "defaultValue": "{{templatesToken}}"
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.vnetName}}"
+    },
+    "addressPrefix": {
+      "type": "string",
+      "defaultValue": "{{networking.vnetAddressPrefix}}"
+    },
+    "dnsServers": {
+      "type": "array",
+      "defaultValue": "[json('{{json networking.dnsServers}}')]"
+    },
+    "defaultSubnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.defaultSubnetName}}"
+    },
+    "defaultSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "{{networking.defaultSubnetAddressPrefix}}"
+    },
+    "wafSubnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.waf.subnetName}}"
+    },
+    "wafSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "{{networking.waf.subnetAddressPrefix}}"
+    },
+    "wafNsgName": {
+      "type": "string",
+      "defaultValue": "{{networking.waf.nsgName}}"
+    },
+    "wafPublicIpName": {
+      "type": "string",
+      "defaultValue": "{{networking.waf.publicIpName}}"
+    },
+    "devGatewaySubnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.devGateway.subnetName}}"
+    },
+    "devGatewaySubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "{{networking.devGateway.subnetAddressPrefix}}"
+    },
+    "devGatewayNsgName": {
+      "type": "string",
+      "defaultValue": "{{networking.devGateway.nsgName}}"
+    },
+    "devGatewayPublicIpName": {
+      "type": "string",
+      "defaultValue": "{{networking.devGateway.publicIpName}}"
+    },
+    "apimSubnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.apimSubnetName}}"
+    },
+    "apimSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "{{networking.apimSubnetAddressPrefix}}"
+    },
+    "apimNsgName": {
+      "type": "string",
+      "defaultValue": "{{networking.apimNsgName}}"
+    },
+    "aseSubnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.aseSubnetName}}"
+    },
+    "aseSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "{{networking.aseSubnetAddressPrefix}}"
+    },
+    "aseNsgName": {
+      "type": "string",
+      "defaultValue": "{{networking.aseNsgName}}"
+    },
+    "monitoringGroup": {
+      "type": "string",
+      "defaultValue": "{{monitoring.rg}}"
+    },
+    "omsWorkspace": {
+      "type": "string",
+      "defaultValue": "{{monitoring.omsWorkspaceName}}"
+    },
+    "logsStorageAccount": {
+      "type": "string",
+      "defaultValue": "{{monitoring.logsStorageAccountName}}"
+    },
+    "diagnosticLogsRetention": {
+      "type": "int",
+      "defaultValue": "[int({{monitoring.retention.nsg}})]"
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": "[json('{{json networking.tags}}')]"
+    },
+    "isNew": {
+      "defaultValue": false,
+      "type": "bool"
+    }
+  },
+  "variables": {
+    "aseNsg": { "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('aseNsgName'))]" }
+  },
+  "resources": [
+    {
+      "name": "[parameters('wafPublicIpName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2017-03-01",
+      "location": "[resourceGroup().location]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic"
+      }
+    },
+    {
+      "name": "[parameters('devGatewayPublicIpName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2017-03-01",
+      "location": "[resourceGroup().location]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic"
+      }
+    },
+    {
+      "name": "[parameters('vnetName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2017-08-01",
+      "location": "[resourceGroup().location]",
+      "tags": "[parameters('tags')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'ase-nsg')]",
+        "[resourceId('Microsoft.Resources/deployments', 'waf-nsg')]",
+        "[resourceId('Microsoft.Resources/deployments', 'dev-gateway-nsg')]",
+        "[resourceId('Microsoft.Resources/deployments', 'apim-nsg')]"
+      ],
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('addressPrefix')]"
+          ]
+        },
+        "dhcpOptions": {
+          "dnsServers": "[parameters('dnsServers')]"
+        },
+        "subnets": [
+          {
+            "name": "[parameters('defaultSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('defaultSubnetAddressPrefix')]"
+            }
+          },
+          {
+            "name": "[parameters('wafSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('wafSubnetAddressPrefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('wafNsgName'))]"
+              }
+            }
+          },
+          {
+            "name": "[parameters('devGatewaySubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('devGatewaySubnetAddressPrefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('devGatewayNsgName'))]"
+              }
+            }
+          },
+          {
+            "name": "[parameters('apimSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('apimSubnetAddressPrefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('apimNsgName'))]"
+              }
+            }
+          },
+          {
+            "name": "[parameters('aseSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('aseSubnetAddressPrefix')]",
+              "networkSecurityGroup": "[if(parameters('isNew'), json('null'), variables('aseNsg'))]",
+              "serviceEndpoints": [
+                {
+                  "service": "Microsoft.Sql"
+                },
+                {
+                  "service": "Microsoft.Storage"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "waf-nsg",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'modules/microsoft.network/nsg-with-diagnostics.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "nsgName": {
+            "value": "[parameters('wafNsgName')]"
+          },
+          "monitoringGroup": {
+            "value": "[parameters('monitoringGroup')]"
+          },
+          "omsWorkspace": {
+            "value": "[parameters('omsWorkspace')]"
+          },
+          "logsStorageAccount": {
+            "value": "[parameters('logsStorageAccount')]"
+          },
+          "diagnosticLogsRetention": {
+            "value": "[parameters('diagnosticLogsRetention')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "securityRules": {
+            "value": [
+              {
+                "name": "AllowHttps",
+                "properties": {
+                  "description": "This is the Https inbound rule",
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "443",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 110,
+                  "direction": "Inbound"
+                }
+              },
+              {
+                "name": "AllowGatewayBackendHealth",
+                "properties": {
+                  "protocol": "*",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "65503-65534",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 130,
+                  "direction": "Inbound"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "dev-gateway-nsg",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'modules/microsoft.network/nsg-with-diagnostics.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "nsgName": {
+            "value": "[parameters('devGatewayNsgName')]"
+          },
+          "monitoringGroup": {
+            "value": "[parameters('monitoringGroup')]"
+          },
+          "omsWorkspace": {
+            "value": "[parameters('omsWorkspace')]"
+          },
+          "logsStorageAccount": {
+            "value": "[parameters('logsStorageAccount')]"
+          },
+          "diagnosticLogsRetention": {
+            "value": "[parameters('diagnosticLogsRetention')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "securityRules": {
+            "value": [
+              {
+                "name": "AllowHttps",
+                "properties": {
+                  "description": "This is the Https inbound rule",
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "443",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 110,
+                  "direction": "Inbound"
+                }
+              },
+              {
+                "name": "AllowGatewayBackendHealth",
+                "properties": {
+                  "protocol": "*",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "65503-65534",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 130,
+                  "direction": "Inbound"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "apim-nsg",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'modules/microsoft.network/nsg-with-diagnostics.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "nsgName": {
+            "value": "[parameters('apimNsgName')]"
+          },
+          "monitoringGroup": {
+            "value": "[parameters('monitoringGroup')]"
+          },
+          "omsWorkspace": {
+            "value": "[parameters('omsWorkspace')]"
+          },
+          "logsStorageAccount": {
+            "value": "[parameters('logsStorageAccount')]"
+          },
+          "diagnosticLogsRetention": {
+            "value": "[parameters('diagnosticLogsRetention')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "securityRules": {
+            "value": [
+              {
+                "name": "AllowHttps",
+                "properties": {
+                  "description": "Allow HTTPS from VNet",
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "443",
+                  "sourceAddressPrefix": "VirtualNetwork",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 110,
+                  "direction": "Inbound"
+                }
+              },
+              {
+                "name": "AllowManagementEndpoint",
+                "properties": {
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "3443",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 130,
+                  "direction": "Inbound"
+                }
+              },
+              {
+                "name": "AllowAzureSQL",
+                "properties": {
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "1433",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 100,
+                  "direction": "Outbound"
+                }
+              },
+              {
+                "name": "AllowEventHubLogging",
+                "properties": {
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "5672",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 110,
+                  "direction": "Outbound"
+                }
+              },
+              {
+                "name": "AllowGitFileShare",
+                "properties": {
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "445",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 120,
+                  "direction": "Outbound"
+                }
+              },
+              {
+                "name": "AllowResourceHealth",
+                "properties": {
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "1886",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 130,
+                  "direction": "Outbound"
+                }
+              },
+              {
+                "name": "AllowSMTP",
+                "properties": {
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "25028",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 140,
+                  "direction": "Outbound"
+                }
+              },
+              {
+                "name": "AllowRedisCache",
+                "properties": {
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "6381-6383",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 150,
+                  "direction": "Outbound"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "ase-nsg",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'modules/microsoft.network/nsg-with-diagnostics.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "nsgName": {
+            "value": "[parameters('aseNsgName')]"
+          },
+          "monitoringGroup": {
+            "value": "[parameters('monitoringGroup')]"
+          },
+          "omsWorkspace": {
+            "value": "[parameters('omsWorkspace')]"
+          },
+          "logsStorageAccount": {
+            "value": "[parameters('logsStorageAccount')]"
+          },
+          "diagnosticLogsRetention": {
+            "value": "[parameters('diagnosticLogsRetention')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "securityRules": {
+            "value": [
+              {
+                "name": "AllowHttps",
+                "properties": {
+                  "description": "This is the Https inbound rule",
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "443",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 110,
+                  "direction": "Inbound"
+                }
+              },
+              {
+                "name": "AllowAzureHealthProbes",
+                "properties": {
+                  "description": "Required port used by Azure infrastructure for managing and maintaining App Service Environments",
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "454-455",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 120,
+                  "direction": "Inbound"
+                }
+              },
+              {
+                "name": "AllowOutboundSQL_1433",
+                "properties": {
+                  "description": "Allowing ASE to communicate to SQL DB",
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "1433",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 100,
+                  "direction": "Outbound"
+                }
+              },
+              {
+                "name": "AllowOutboundSQL_11000-11999",
+                "properties": {
+                  "description": "Allowing ASE to communicate to SQL DB",
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "11000-11999",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 110,
+                  "direction": "Outbound"
+                }
+              },
+              {
+                "name": "AllowOutboundSQL_14000-14999",
+                "properties": {
+                  "description": "Allowing ASE to communicate to SQL DB",
+                  "protocol": "Tcp",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "14000-14999",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 120,
+                  "direction": "Outbound"
+                }
+              },
+              {
+                "name": "AllowOutboundtoAzureDomain",
+                "properties": {
+                  "description": "Allowing Outbound access on port 53 is required for communication with Azure DNS servers",
+                  "protocol": "*",
+                  "sourcePortRange": "*",
+                  "destinationPortRange": "53",
+                  "sourceAddressPrefix": "*",
+                  "destinationAddressPrefix": "*",
+                  "access": "Allow",
+                  "priority": 130,
+                  "direction": "Outbound"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

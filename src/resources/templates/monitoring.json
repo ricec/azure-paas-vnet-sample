@@ -1,0 +1,126 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "templatesUrl": {
+      "type": "securestring",
+      "defaultValue": "{{templatesUrl}}"
+    },
+    "templatesToken": {
+      "type": "securestring",
+      "defaultValue": "{{templatesToken}}"
+    },
+    "omsWorkspace": {
+      "type": "string",
+      "defaultValue": "{{monitoring.omsWorkspaceName}}"
+    },
+    "appInsightsName": {
+      "type": "string",
+      "defaultValue": "{{monitoring.appInsightsName}}"
+    },
+    "appInsightsPlan": {
+      "type": "int",
+      "allowedValues": [
+        0,
+        1,
+        2
+      ],
+      "defaultValue": "[int({{monitoring.appInsightsPlan}})]"
+    },
+    "omsRetention": {
+      "type": "int",
+      "defaultValue": "[int({{monitoring.retention.oms}})]"
+    },
+    "logsStorageAccount": {
+      "type": "string",
+      "defaultValue": "{{monitoring.logsStorageAccountName}}"
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": "[json('{{json monitoring.tags}}')]"
+    }
+  },
+  "variables": {
+    "solutionNames": [
+      "AzureWebAppsAnalytics",
+      "AzureSQLAnalytics",
+      "ChangeTracking",
+      "KeyVaultAnalytics",
+      "Security",
+      "ApplicationInsights",
+      "AzureActivity",
+      "SecurityCenterFree"
+    ]
+  },
+  "resources": [
+    {
+      "name": "oms-workspaces",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'modules/microsoft.loganalytics/workspaces.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "omsWorkspaceName": {
+            "value": "[parameters('omsWorkspace')]"
+          },
+          "omsSolutionsName": {
+            "value": "[variables('solutionNames')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "sku": {
+            "value": "PerNode"
+          },
+          "dataRetention": {
+            "value": "[parameters('omsRetention')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "appInsights",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'modules/microsoft.appinsights/components.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "appName": {
+            "value": "[parameters('appInsightsName')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "priceCode": {
+            "value": "[parameters('appInsightsPlan')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "diagnosticsStorage",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'modules/microsoft.storage/storage-encrypt-httpsonly.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "storageAccountName": {
+            "value": "[parameters('logsStorageAccount')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        }
+      }
+    }
+  ]
+}

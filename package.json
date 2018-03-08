@@ -1,0 +1,18 @@
+{
+  "name": "rxng",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "setup": "./src/tasks/setup.js",
+    "deploy": "./src/tasks/deploy.js",
+    "teardown": "./src/tasks/teardown.js"
+  },
+  "dependencies": {
+    "azure": "^2.2.1-preview",
+    "commander": "^2.15.1",
+    "fs-extra": "^5.0.0",
+    "glob": "^7.1.2",
+    "handlebars": "^4.0.11",
+    "lodash": "^4.17.5"
+  }
+}

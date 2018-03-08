@@ -1,0 +1,58 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "nsgName": { "type": "string" },
+    "securityRules": { "type": "array" },
+    "monitoringGroup": { "type": "string" },
+    "omsWorkspace": { "type": "string" },
+    "logsStorageAccount": { "type": "string" },
+    "diagnosticLogsRetention": { "type": "int" },
+    "tags": {
+      "defaultValue": {},
+      "type": "object"
+    }
+  },
+  "resources": [
+    {
+      "name": "[parameters('nsgName')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2016-03-30",
+      "location": "[resourceGroup().location]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "securityRules": "[parameters('securityRules')]"
+      },
+      "resources": [
+        {
+          "type": "providers/diagnosticSettings",
+          "name": "Microsoft.Insights/service",
+          "apiVersion": "2015-07-01",
+          "dependsOn": ["[parameters('nsgName')]"],
+          "properties": {
+            "workspaceId": "[resourceId(parameters('monitoringGroup'), 'Microsoft.OperationalInsights/workspaces', parameters('omsWorkspace'))]",
+            "storageAccountId": "[resourceId(parameters('monitoringGroup'), 'Microsoft.Storage/storageAccounts', parameters('logsStorageAccount'))]",
+            "logs": [
+              {
+                "category": "NetworkSecurityGroupEvent",
+                "enabled": true,
+                "retentionPolicy": {
+                  "days": "[parameters('diagnosticLogsRetention')]",
+                  "enabled": true
+                }
+              },
+              {
+                "category": "NetworkSecurityGroupRuleCounter",
+                "enabled": true,
+                "retentionPolicy": {
+                  "days": "[parameters('diagnosticLogsRetention')]",
+                  "enabled": false
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

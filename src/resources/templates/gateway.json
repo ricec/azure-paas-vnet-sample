@@ -1,0 +1,309 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appGatewayName": {
+      "type": "string",
+      "defaultValue": "{{networking.waf.name}}"
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "{{networking.waf.sku}}"
+    },
+    "capacity": {
+      "type": "int",
+      "defaultValue": "[int({{networking.waf.capacity}})]"
+    },
+    "probeHostname": {
+      "type": "string",
+      "defaultValue": "{{app.apim.domain}}"
+    },
+    "probePath": {
+      "type": "string",
+      "defaultValue": "/status-0123456789abcdef"
+    },
+    "gatewayCert": {
+      "type": "securestring"
+    },
+    "apiSslPublicKey": {
+      "type": "string",
+      "defaultValue": "{{apiSslPublicKey}}"
+    },
+    "appRg": {
+      "type": "string",
+      "defaultValue": "{{app.rg}}"
+    },
+    "apimName": {
+      "type": "string",
+      "defaultValue": "{{app.apim.name}}"
+    },
+    "apimProxyHostname": {
+      "type": "string",
+      "defaultValue": "{{app.apim.domain}}"
+    },
+    "apimPortalHostname": {
+      "type": "string",
+      "defaultValue": "{{app.apim.portalSubdomain}}.{{app.apim.domain}}"
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.vnetName}}"
+    },
+    "wafSubnetName": {
+      "type": "string",
+      "defaultValue": "{{networking.waf.subnetName}}"
+    },
+    "publicIpAddressName": {
+      "type": "string",
+      "defaultValue": "{{networking.waf.publicIpName}}"
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": "[json('{{json networking.tags}}')]"
+    },
+    "monitoringGroup": {
+      "type": "string",
+      "defaultValue": "{{monitoring.rg}}"
+    },
+    "omsWorkspace": {
+      "type": "string",
+      "defaultValue": "{{monitoring.omsWorkspaceName}}"
+    },
+    "logsStorageAccount": {
+      "type": "string",
+      "defaultValue": "{{monitoring.logsStorageAccountName}}"
+    },
+    "diagnosticLogsRetention": {
+      "type": "int",
+      "defaultValue": "[int({{monitoring.retention.waf}})]"
+    }
+  },
+  "variables": {
+    "apimId": "[resourceId(parameters('appRg'), 'Microsoft.ApiManagement/service', parameters('apimName'))]",
+    "vnetId": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]",
+    "subnetId": "[concat(variables('vnetId'),'/subnets/',parameters('wafSubnetName'))]",
+    "publicIpId": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('publicIpAddressName'))]",
+    "gatewayId": "[resourceId('Microsoft.Network/applicationGateways',parameters('appGatewayName'))]"
+  },
+  "resources": [
+    {
+      "name": "[parameters('appGatewayName')]",
+      "type": "Microsoft.Network/applicationGateways",
+      "apiVersion": "2017-03-01",
+      "location": "[resourceGroup().location]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "name": "[parameters('skuName')]",
+          "tier": "WAF",
+          "capacity": "[parameters('capacity')]"
+        },
+        "gatewayIPConfigurations": [
+          {
+            "name": "appGatewayIpConfig",
+            "properties": {
+              "subnet": {
+                "id": "[variables('subnetId')]"
+              }
+            }
+          }
+        ],
+        "frontendIPConfigurations": [
+          {
+            "name": "frontendIp",
+            "properties": {
+              "PublicIPAddress": {
+                "id": "[variables('publicIpId')]"
+              }
+            }
+          }
+        ],
+        "frontendPorts": [
+          {
+            "name": "httpsFrontendPort",
+            "properties": {
+              "Port": 443
+            }
+          }
+        ],
+        "sslCertificates": [
+          {
+            "name": "gatewayCert",
+            "properties": {
+              "data": "[parameters('gatewayCert')]"
+            }
+          }
+        ],
+        "authenticationCertificates": [
+          {
+            "name": "apimPublicKey",
+            "properties": {
+              "data": "[parameters('apiSslPublicKey')]"
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "apimBackendPool",
+            "properties": {
+              "BackendAddresses": [
+                {
+                  "IpAddress": "[reference(variables('apimId'), '2018-01-01').privateIPAddresses[0]]"
+                }
+              ]
+            }
+          }
+        ],
+        "backendHttpSettingsCollection": [
+          {
+            "name": "httpsBackendSettings",
+            "properties": {
+              "Port": 443,
+              "Protocol": "Https",
+              "CookieBasedAffinity": "Disabled",
+              "probe": {
+                "id": "[concat(variables('gatewayId'), '/probes/apimHttpsProbe')]"
+              },
+              "authenticationCertificates": [
+                {
+                  "id": "[concat(variables('gatewayId'),'/authenticationCertificates/apimPublicKey')]"
+                }
+              ]
+            }
+          }
+        ],
+        "httpListeners": [
+          {
+            "name": "apimProxyListener",
+            "properties": {
+              "Hostname": "[parameters('apimProxyHostname')]",
+              "FrontendIPConfiguration": {
+                "Id": "[concat(variables('gatewayId'), '/frontendIPConfigurations/frontendIp')]"
+              },
+              "FrontendPort": {
+                "Id": "[concat(variables('gatewayId'), '/frontendPorts/httpsFrontendPort')]"
+              },
+              "Protocol": "Https",
+              "SslCertificate": {
+                "Id": "[concat(variables('gatewayId'), '/sslCertificates/gatewayCert')]"
+              }
+            }
+          },
+          {
+            "name": "apimPortalListener",
+            "properties": {
+              "Hostname": "[parameters('apimPortalHostname')]",
+              "FrontendIPConfiguration": {
+                "Id": "[concat(variables('gatewayId'), '/frontendIPConfigurations/frontendIp')]"
+              },
+              "FrontendPort": {
+                "Id": "[concat(variables('gatewayId'), '/frontendPorts/httpsFrontendPort')]"
+              },
+              "Protocol": "Https",
+              "SslCertificate": {
+                "Id": "[concat(variables('gatewayId'), '/sslCertificates/gatewayCert')]"
+              }
+            }
+          }
+        ],
+        "requestRoutingRules": [
+          {
+            "Name": "apimProxyRule",
+            "properties": {
+              "RuleType": "Basic",
+              "httpListener": {
+                "id": "[concat(variables('gatewayId'), '/httpListeners/apimProxyListener')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('gatewayId'), '/backendAddressPools/apimBackendPool')]"
+              },
+              "backendHttpSettings": {
+                "id": "[concat(variables('gatewayId'), '/backendHttpSettingsCollection/httpsBackendSettings')]"
+              }
+            }
+          },
+          {
+            "Name": "apimPortalRule",
+            "properties": {
+              "RuleType": "Basic",
+              "httpListener": {
+                "id": "[concat(variables('gatewayId'), '/httpListeners/apimPortalListener')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('gatewayId'), '/backendAddressPools/apimBackendPool')]"
+              },
+              "backendHttpSettings": {
+                "id": "[concat(variables('gatewayId'), '/backendHttpSettingsCollection/httpsBackendSettings')]"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "name": "apimHttpsProbe",
+            "properties": {
+              "protocol": "Https",
+              "host": "[parameters('probeHostname')]",
+              "path": "[parameters('probePath')]",
+              "interval": 30,
+              "timeout": 30,
+              "unhealthyThreshold": 8
+            }
+          }
+        ],
+        "sslPolicy": {
+          "disabledSslProtocols": [
+            "TLSv1_0",
+            "TLSv1_1"
+          ]
+        },
+        "webApplicationFirewallConfiguration": {
+          "enabled": true,
+          "firewallMode": "Prevention",
+          "ruleSetType": "OWASP",
+          "ruleSetVersion": "3.0"
+        }
+      },
+      "resources": [
+        {
+          "type": "providers/diagnosticSettings",
+          "name": "Microsoft.Insights/service",
+          "dependsOn": [
+            "[resourceId('Microsoft.Network/applicationGateways', parameters('appGatewayName'))]"
+          ],
+          "apiVersion": "2016-09-01",
+          "properties": {
+            "workspaceId": "[resourceId(parameters('monitoringGroup'), 'Microsoft.OperationalInsights/workspaces', parameters('omsWorkspace'))]",
+            "storageAccountId": "[resourceId(parameters('monitoringGroup'), 'Microsoft.Storage/storageAccounts', parameters('logsStorageAccount'))]",
+            "logs": [
+              {
+                "category": "ApplicationGatewayAccessLog",
+                "enabled": true,
+                "retentionPolicy": {
+                  "days": "[parameters('diagnosticLogsRetention')]",
+                  "enabled": true
+                }
+              },
+              {
+                "category": "ApplicationGatewayPerformanceLog",
+                "enabled": true,
+                "retentionPolicy": {
+                  "days": "[parameters('diagnosticLogsRetention')]",
+                  "enabled": true
+                }
+              },
+              {
+                "category": "ApplicationGatewayFirewallLog",
+                "enabled": true,
+                "retentionPolicy": {
+                  "days": "[parameters('diagnosticLogsRetention')]",
+                  "enabled": true
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
