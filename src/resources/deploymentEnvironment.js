@@ -1,7 +1,5 @@
 const fs = require('fs');
 const azureStorage = require('azure-storage');
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
 const storageHelper = require('../util/storageHelper');
 
 class DeploymentEnvironment {

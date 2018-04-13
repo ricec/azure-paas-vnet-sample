@@ -2,8 +2,7 @@ const MsRest = require('ms-rest-azure');
 const Adal = require('adal-node');
 const os = require('os');
 const fs = require('fs');
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+const AzCommand = require('./azCommand');
 
 class Auth {
   constructor(tokenFilePath) {
@@ -24,8 +23,8 @@ class Auth {
 
   async _loadAccount() {
     // Make sure we have a fresh access token
-    await exec('az account get-access-token');
-    const accountString = (await exec('az account show')).stdout;
+    await AzCommand.exec('account get-access-token');
+    const accountString = await AzCommand.exec('account show');
     return JSON.parse(accountString);
   }
 

@@ -1,14 +1,13 @@
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+const AzCommand = require('./azCommand');
 
 class StorageHelper {
   async getConnectionString(resourceGroup, storageAccount) {
-    const cliCommand = `az storage account show-connection-string \\
-      --resource-group "${resourceGroup}" \\
-      --name "${storageAccount}" \\
-      --output tsv \\
-      --query connectionString`;
-    return (await exec(cliCommand)).stdout.trim();
+    return (await AzCommand.exec('storage account show-connection-string', {
+      'resource-group': resourceGroup,
+      name: storageAccount,
+      output: 'tsv',
+      query: 'connectionString'
+    })).trim();
   }
 
   async configureBlobDiagnostics(blobService, retention) {

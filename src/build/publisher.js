@@ -1,6 +1,5 @@
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
 const storageHelper = require('../util/storageHelper');
+const AzCommand = require('../util/azCommand');
 
 class Publisher {
   constructor(deployEnv, config) {
@@ -13,21 +12,19 @@ class Publisher {
 
   async clean() {
     const connectionString = await this._getConnectionString();
-    const cliCommand = `az storage blob delete-batch \\
-      --source "${this._templatesContainer}" \\
-      --connection-string "${connectionString}"`;
-
-    await exec(cliCommand);
+    await AzCommand.exec('storage blob delete-batch', {
+      source: this._templatesContainer,
+      'connection-string': connectionString
+    });
   }
 
   async publish() {
     const connectionString = await this._getConnectionString();
-    const cliCommand = `az storage blob upload-batch \\
-      --source "${this._buildOutputDir}" \\
-      --destination "${this._templatesContainer}" \\
-      --connection-string "${connectionString}"`
-
-    await exec(cliCommand);
+    await AzCommand.exec('storage blob upload-batch', {
+      source: this._buildOutputDir,
+      destination: this._templatesContainer,
+      'connection-string': connectionString
+    });
   }
 
   async _getConnectionString() {

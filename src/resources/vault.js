@@ -1,6 +1,5 @@
 const fs = require('fs');
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+const AzCommand = require('../util/azCommand');
 
 class Vault {
   constructor(config) {
@@ -10,12 +9,11 @@ class Vault {
   }
 
   async grantCertAccess(username) {
-    const cliCommand = `az keyvault set-policy \\
-      --name "${this._keyVaultName}" \\
-      --upn "${username}" \\
-      --certificate-permissions get import`;
-
-    await exec(cliCommand);
+    await AzCommand.exec('keyvault set-policy', {
+      name: this._keyVaultName,
+      upn: username,
+      'certificate-permissions': ['get', 'upload']
+    });
   }
 
   async setupSecrets() {
@@ -24,23 +22,21 @@ class Vault {
   }
 
   async getCertPublicKey(secretName) {
-    const cliCommand = `az keyvault certificate show \\
-      --name "${secretName}" \\
-      --vault-name "${this._keyVaultName}" \\
-      --query cer \\
-      --output tsv`;
-
-    return (await exec(cliCommand)).stdout;
+    return await AzCommand.exec('keyvault certificate show', {
+      name: secretName,
+      'vault-name': this._keyVaultName,
+      query: 'cer',
+      output: 'tsv'
+    });
   }
 
   async _setupCert(certConfig) {
     const policyJson = JSON.stringify(this._getCertPolicy(certConfig.cn, certConfig.san));
-    const cliCommand = `az keyvault certificate create \\
-      --name "${certConfig.name}" \\
-      --policy '${policyJson}' \\
-      --vault-name "${this._keyVaultName}"`;
-
-    await exec(cliCommand);
+    await AzCommand.exec('keyvault certificate create', {
+      name: certConfig.name,
+      policy: policyJson,
+      'vault-name': this._keyVaultName
+    });
   }
 
   _getCertPolicy(commonName, altName) {
