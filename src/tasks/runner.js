@@ -5,7 +5,7 @@ const { DeploymentEnvironment, GroupManager, Vault, Deployer } = require('../res
 const { Builder, Publisher } = require('../build');
 
 class Runner {
-  async _initialize(isInitialSetup) {
+  async _initialize() {
     console.log('Authenticating & acquiring account info...');
     this.account = await new Auth().loadFromCli();
     this.armClient = new armResource.ResourceManagementClient(
@@ -40,7 +40,6 @@ class Runner {
 
   async runDeploy() {
     await this._initialize(false);
-    await this.vault.grantCertAccess(this.account.user.name);
 
     // Include public key in build context for use in deployment
     const buildContext = await this._getBuildContext();
@@ -82,8 +81,7 @@ class Runner {
       this._buildContext = {
         templatesUrl: templatesUrl,
         templatesToken: templatesToken,
-        subscriptionId: this.account.id,
-        isInitialSetup: this.isInitialSetup
+        subscriptionId: this.account.id
       };
     }
 
