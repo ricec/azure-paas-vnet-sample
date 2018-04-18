@@ -223,13 +223,72 @@
       "dependsOn": [
         "monitoring",
         "secrets",
-        "ase",
-        "networking-initialization"
+        "networking-initialization",
+        "ase"
       ],
       "properties": {
         "mode": "Incremental",
         "templateLink": {
           "uri": "[concat(parameters('templatesUrl'), 'networking.json', '?', parameters('templatesToken'))]"
+        }
+      }
+    },
+    {
+      "name": "default-asp",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('appRg')]",
+      "condition": "[variables('runDeploy')]",
+      "dependsOn": [
+        "monitoring",
+        "secrets",
+        "networking-initialization",
+        "ase"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'services/default-plan.json', '?', parameters('templatesToken'))]"
+        }
+      }
+    },
+    {
+      "name": "work-service",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('appRg')]",
+      "condition": "[variables('runDeploy')]",
+      "dependsOn": [
+        "monitoring",
+        "secrets",
+        "networking-initialization",
+        "ase",
+        "default-asp"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'services/work-service.json', '?', parameters('templatesToken'))]"
+        }
+      }
+    },
+    {
+      "name": "routing-engine",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "resourceGroup": "[parameters('appRg')]",
+      "condition": "[variables('runDeploy')]",
+      "dependsOn": [
+        "monitoring",
+        "secrets",
+        "networking-initialization",
+        "ase",
+        "default-asp"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'services/routing-engine.json', '?', parameters('templatesToken'))]"
         }
       }
     }

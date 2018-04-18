@@ -14,7 +14,8 @@ module.exports = function(context) {
       vault: 365,
       nsg: 365,
       logsStorageDiagnostics: 365,
-      deployStorageDiagnostics: 90
+      deployStorageDiagnostics: 90,
+      appServices: 365
     },
     tags: { Tier: 'Ops', ...baseTags }
   };

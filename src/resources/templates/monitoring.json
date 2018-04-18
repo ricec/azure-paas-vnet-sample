@@ -94,6 +94,9 @@
           "appName": {
             "value": "[parameters('appInsightsName')]"
           },
+          "appType": {
+            "value": "java"
+          },
           "tags": {
             "value": "[parameters('tags')]"
           },

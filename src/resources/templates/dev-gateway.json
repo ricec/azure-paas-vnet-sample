@@ -58,7 +58,11 @@
     },
     "workServiceScmHostname": {
       "type": "string",
-      "defaultValue": "{{app.workService.name}}.scm.{{app.ase.domain}}"
+      "defaultValue": "{{services.workService.name}}.scm.{{app.ase.domain}}"
+    },
+    "routingEngineScmHostname": {
+      "type": "string",
+      "defaultValue": "{{services.routingEngine.name}}.scm.{{app.ase.domain}}"
     },
     "appRg": {
       "type": "string",
@@ -277,6 +281,22 @@
                 "Id": "[concat(variables('gatewayId'), '/sslCertificates/aseCert')]"
               }
             }
+          },
+          {
+            "name": "routingEngineScmListener",
+            "properties": {
+              "Hostname": "[parameters('routingEngineScmHostname')]",
+              "FrontendIPConfiguration": {
+                "Id": "[concat(variables('gatewayId'), '/frontendIPConfigurations/frontendIp')]"
+              },
+              "FrontendPort": {
+                "Id": "[concat(variables('gatewayId'), '/frontendPorts/httpsFrontendPort')]"
+              },
+              "Protocol": "Https",
+              "SslCertificate": {
+                "Id": "[concat(variables('gatewayId'), '/sslCertificates/aseCert')]"
+              }
+            }
           }
         ],
         "requestRoutingRules": [
@@ -316,6 +336,21 @@
               "RuleType": "Basic",
               "httpListener": {
                 "id": "[concat(variables('gatewayId'), '/httpListeners/workServiceScmListener')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('gatewayId'), '/backendAddressPools/aseBackendPool')]"
+              },
+              "backendHttpSettings": {
+                "id": "[concat(variables('gatewayId'), '/backendHttpSettingsCollection/aseBackendSettings')]"
+              }
+            }
+          },
+          {
+            "Name": "routingEngineScmRule",
+            "properties": {
+              "RuleType": "Basic",
+              "httpListener": {
+                "id": "[concat(variables('gatewayId'), '/httpListeners/routingEngineScmListener')]"
               },
               "backendAddressPool": {
                 "id": "[concat(variables('gatewayId'), '/backendAddressPools/aseBackendPool')]"

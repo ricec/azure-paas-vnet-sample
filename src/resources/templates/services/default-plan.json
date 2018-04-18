@@ -1,0 +1,65 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "templatesUrl": {
+      "type": "securestring",
+      "defaultValue": "{{templatesUrl}}"
+    },
+    "templatesToken": {
+      "type": "securestring",
+      "defaultValue": "{{templatesToken}}"
+    },
+    "aseName": {
+      "type": "string",
+      "defaultValue": "{{app.ase.name}}"
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "{{services.plans.default.name}}"
+    },
+    "appServicePlanPricingTier": {
+      "type": "string",
+      "defaultValue": "{{services.plans.default.tier}}"
+    },
+    "appServicePlanCapacity": {
+      "type": "int",
+      "defaultValue": "[int({{services.plans.default.capacity}})]"
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": "[json('{{json services.plans.default.tags}}')]"
+    }
+  },
+  "resources": [
+    {
+      "name": "app-service-plan",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'modules/microsoft.web/app-service-plan.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "aseName": {
+            "value": "[parameters('aseName')]"
+          },
+          "planName": {
+            "value": "[parameters('appServicePlanName')]"
+          },
+          "pricingTier": {
+            "value": "[parameters('appServicePlanPricingTier')]"
+          },
+          "capacity": {
+            "value": "[parameters('appServicePlanCapacity')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        }
+      }
+    }
+  ]
+}
+

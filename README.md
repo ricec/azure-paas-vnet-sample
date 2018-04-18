@@ -83,11 +83,9 @@ If you are using self-signed certificates on your ASE (default), you'll need to 
 $apimRg = "Your resource group"
 $apimName = "The name of your APIM service"
 $aseUrl = "https://[your app service].[your ASE domain]"
-$aseScmUrl = "https://[your app service].scm.[your ASE domain]"
 
-$context = New-AzureRmApiManagementContext -resourcegroup $appRg -servicename $apimName
+$context = New-AzureRmApiManagementContext -resourcegroup $apimRg -servicename $apimName
 New-AzureRmApiManagementBackend -Context  $context -Url $aseUrl -Protocol http -SkipCertificateChainValidation $true
-New-AzureRmApiManagementBackend -Context  $context -Url $aseScmUrl -Protocol http -SkipCertificateChainValidation $true
 ```
 
 ## Teardown

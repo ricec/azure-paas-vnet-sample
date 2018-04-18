@@ -1,0 +1,71 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "templatesUrl": {
+      "type": "securestring",
+      "defaultValue": "{{templatesUrl}}"
+    },
+    "templatesToken": {
+      "type": "securestring",
+      "defaultValue": "{{templatesToken}}"
+    },
+    "siteName": {
+      "type": "string",
+      "defaultValue": "{{services.workService.name}}"
+    },
+    "aseName": {
+      "type": "string",
+      "defaultValue": "{{app.ase.name}}"
+    },
+    "appServicePlanName": {
+      "type": "string",
+      "defaultValue": "{{services.plans.default.name}}"
+    },
+    "logsStorageAccount": {
+      "type": "string",
+      "defaultValue": "{{monitoring.logsStorageAccountName}}"
+    },
+    "diagnosticLogsRetention": {
+      "type": "int",
+      "defaultValue": "[int({{monitoring.retention.appServices}})]"
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": "[json('{{json services.workService.tags}}')]"
+    }
+  },
+  "resources": [
+    {
+      "name": "work-service-app-service",
+      "apiVersion": "2017-05-10",
+      "type": "Microsoft.Resources/deployments",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('templatesUrl'), 'modules/microsoft.web/web-app.json', '?', parameters('templatesToken'))]"
+        },
+        "parameters": {
+          "siteName": {
+            "value": "[parameters('siteName')]"
+          },
+          "aseName": {
+            "value": "[parameters('aseName')]"
+          },
+          "appServicePlanName": {
+            "value": "[parameters('appServicePlanName')]"
+          },
+          "logsStorageAccount": {
+            "value": "[parameters('logsStorageAccount')]"
+          },
+          "diagnosticLogsRetention": {
+            "value": "[parameters('diagnosticLogsRetention')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        }
+      }
+    }
+  ]
+}

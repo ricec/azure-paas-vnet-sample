@@ -18,7 +18,8 @@ function config(environment, domain) {
     secrets: require('./default/secrets.conf')(context),
     monitoring: require('./default/monitoring.conf')(context),
     networking: require('./default/networking.conf')(context),
-    app: require('./default/app.conf')(context)
+    app: require('./default/app.conf')(context),
+    services: require('./default/services.conf')(context)
   };
 }
 
