@@ -1,6 +1,8 @@
 # Azure PaaS VNet Sample
 
-This repo and these docs are a WIP.
+This repo and these docs are a WIP. These templates will create the following setup:
+
+![diagram](./docs/images/diagram.jpg)
 
 ## Quick Start
 
