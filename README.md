@@ -1,4 +1,4 @@
-# App Gateway -> API Management -> App Service Environment
+# Azure PaaS VNet Sample
 
 This repo and these docs are a WIP.
 
@@ -8,7 +8,7 @@ This repo and these docs are a WIP.
 - `npm install`
 - [Modify the config](#configuration) to suit your needs
 - `npm run setup` (takes ~5 minutes)
-  - See the [setup phase](#phase-1-setup)
+  - See the [setup phase](#phase-1:-setup)
 - `npm run deploy` (takes ~1 hour... I know I said "quick" start, but ASEs take a long time to spin up!)
 - Perform the post-deployment steps
 - Start deploying your code!
@@ -22,16 +22,16 @@ The configuration for these templates and deployment processes is not your stand
 When first starting out, you will want to review the default configuration to ensure naming conventions, service SKUs, hostnames, tags, network address spaces, etc. all meet your needs. The following config files contain the default configuration:
 
 - [default](./config/default.js): Contains base configuration, including prefix for naming conventions, base tags, and the base domain name.
-- [default/app](./config/deploy/app.js): Contains configuration for the shared app-level infrastructure, including the APIM and ASE.
-- [default/deploy](./config/default/deploy.js): Contains configuration for the infrastructure deployment process.
-- [default/monitoring](./config/default/monitoring.js): Contains configuration for the monitoring systems used by the rest of the infrastructure. This includes diagnostic logs retention policies.
-- [default/networking](./config/default/networking.js): Contains configuration for the foundational networking infrastructure, including the vnet, subnets, NSGs, and App Gateways.
-- [default/secrets](./config/default/secrets.js): Contains configuration for secrets storage in Key Vault.
-- [default/services](./config/default/services.js): Contains configuration for the individual services deployed to this infrastructure.
+- [default/app](./config/deploy/app.conf.js): Contains configuration for the shared app-level infrastructure, including the APIM and ASE.
+- [default/deploy](./config/default/deploy.conf.js): Contains configuration for the infrastructure deployment process.
+- [default/monitoring](./config/default/monitoring.conf.js): Contains configuration for the monitoring systems used by the rest of the infrastructure. This includes diagnostic logs retention policies.
+- [default/networking](./config/default/networking.conf.js): Contains configuration for the foundational networking infrastructure, including the vnet, subnets, NSGs, and App Gateways.
+- [default/secrets](./config/default/secrets.conf.js): Contains configuration for secrets storage in Key Vault.
+- [default/services](./config/default/services.conf.js): Contains configuration for the individual services deployed to this infrastructure.
 
 ## Build Process
 
-This repo makes use of Handlebars as an extra step in the build process to inject configuration into ARM templates. This may not make sense to some, given ARM's support for parameters, outputs, external parameter files, etc. However, I have my reasons, [which I've described](./docs/build-motivation.md). The short of it is that [configuration](#configuration) you've defined is available for use in your ARM templates via Handlebars. For example, in the template below, the `vnetName` parameter has a default value that is pulled from the [networking config](./config/default/networking.js).
+This repo makes use of Handlebars as an extra step in the build process to inject configuration into ARM templates. This may not make sense to some, given ARM's support for parameters, outputs, external parameter files, etc. However, I have my reasons, [which I've described](./docs/build-motivation.md). The short of it is that [configuration](#configuration) you've defined is available for use in your ARM templates via Handlebars. For example, in the template below, the `vnetName` parameter has a default value that is pulled from the [networking config](./config/default/networking.conf.js).
 
 ```json
 {
@@ -121,22 +121,7 @@ In order for APIM to make calls to the backend ASE, we need to configure private
 - Navigate to your VNet in the portal -> DNS Servers -> Custom -> Enter your DNS Server's static IP
 - Navigate to your APIM instance in the portal -> Virtual network -> Apply network configuration
 
-### Adding a new App Service
-
-From the portal...
-
-- Create an App Service Plan on the new ASE
-- Create an App Service on the new App Service Plan
-
-#### Allowing SCM access to the new App Service
-
-In the APIM Template...
-
-- Add httplistener
-- Add request routing rule
-- Use ase backend & http settings
-
-#### Allowing APIM to accept self-signed certificates from backends
+#### Allowing APIM to accept self-signed certificates from backends (optional)
 
 If you are using self-signed certificates on your ASE (default), you'll need to disable certificate chain validation on your APIM service. The following PowerShell commands will configure this for you.
 
@@ -164,4 +149,10 @@ TODO
 TODO
 
 ### Deploying to App Service
+TODO
+
+## Adding a new App Service
+TODO
+
+#### Allowing SCM access to the new App Service
 TODO
