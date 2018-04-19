@@ -1,6 +1,6 @@
 # Azure PaaS VNet Sample
 
-This repo and these docs are a WIP. These templates will create the following setup:
+These templates will create the following setup:
 
 ![diagram](./docs/images/diagram.jpg)
 
@@ -10,7 +10,7 @@ This repo and these docs are a WIP. These templates will create the following se
 - `npm install`
 - [Modify the config](#configuration) to suit your needs
 - `npm run setup` (takes ~5 minutes)
-  - See the [setup phase](#phase-1:-setup)
+  - See the [setup phase](#setup)
 - `npm run deploy` (takes ~1 hour... I know I said "quick" start, but ASEs take a long time to spin up!)
 - Perform the post-deployment steps
 - Start deploying your code!
@@ -24,7 +24,7 @@ The configuration for these templates and deployment processes is not your stand
 When first starting out, you will want to review the default configuration to ensure naming conventions, service SKUs, hostnames, tags, network address spaces, etc. all meet your needs. The following config files contain the default configuration:
 
 - [default](./config/default.js): Contains base configuration, including prefix for naming conventions, base tags, and the base domain name.
-- [default/app](./config/deploy/app.conf.js): Contains configuration for the shared app-level infrastructure, including the APIM and ASE.
+- [default/app](./config/default/app.conf.js): Contains configuration for the shared app-level infrastructure, including the APIM and ASE.
 - [default/deploy](./config/default/deploy.conf.js): Contains configuration for the infrastructure deployment process.
 - [default/monitoring](./config/default/monitoring.conf.js): Contains configuration for the monitoring systems used by the rest of the infrastructure. This includes diagnostic logs retention policies.
 - [default/networking](./config/default/networking.conf.js): Contains configuration for the foundational networking infrastructure, including the vnet, subnets, NSGs, and App Gateways.
@@ -49,13 +49,13 @@ This repo makes use of Handlebars as an extra step in the build process to injec
 
 ## Deployment Process
 
-### Phase 1: Setup
+### Setup
 
 `npm run setup`
 
 This is the first command you'll want to run when you're setting up a new environment. This lays the foundation on which other components will be deployed. This command does the following:
 
-- Create the resource groups (TODO: write up resource groups and descriptions)
+- Create the resource groups
 - Create the templates storage account and container
 - [Build & publish](#build-process) the templates
 - Initiate an ARM deployment from these templates to create the following:
@@ -72,7 +72,7 @@ Once this command has completed, you should review the following in the Azure Po
 - IAM for each resource group that has been created
 - Access Policies for the Key Vault. Users who will perform the Deploy phase will need at least "get" permissions for certificates.
 
-### Phase 2: Deploy
+### Deploy
 
 `npm run deploy`
 
@@ -87,7 +87,7 @@ After setup has completed, this is the command that you will run to deploy the r
   - Work Service
   - Routing Engine
 
-### Phase 3: Post-Deployment Setup
+### Post-Deployment Setup
 
 #### Configuring SSL for your App Service Environment
 
