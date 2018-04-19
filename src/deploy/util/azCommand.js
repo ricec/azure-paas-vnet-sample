@@ -6,7 +6,7 @@ class AzCommand {
   static async exec(command, args) {
     const argString = _.entries(args).map(arr => {
       const values = Array.isArray(arr[1]) ? arr[1] : Array(arr[1]);
-      const valueString = values.map(str => `"${str}"`).join(' ');
+      const valueString = values.map(str => `"${str.replace(/"/g, '\\"')}"`).join(' ');
 
       return `--${arr[0]} ${valueString}`
     }).join(' ');

@@ -1,24 +1,24 @@
-const storageHelper = require('../util/storageHelper');
+const storageHelper = require('./util/storageHelper');
 const azureStorage = require('azure-storage');
 
 class Deployer {
-  constructor(armClient, config) {
-    this._armClient = armClient;
-    this._groupName = config.deployment.rg;
-    this._logsStorageDiagnosticsRetention = config.monitoring.retention.logsStorageDiagnostics;
-    this._logsStorageAccount = config.monitoring.logsStorageAccountName;
-    this._monitoringRg = config.monitoring.rg;
+  constructor(pipelineContext) {
+    const conf = pipelineContext.config;
+    this._armClient = pipelineContext.armClient;
+    this._templateUrl = `${conf.templatesUrl}main.json?${conf.templatesToken}`;
+    this._groupName = conf.deployment.rg;
+    this._logsStorageDiagnosticsRetention = conf.monitoring.retention.logsStorageDiagnostics;
+    this._logsStorageAccount = conf.monitoring.logsStorageAccountName;
+    this._monitoringRg = conf.monitoring.rg;
   }
 
-  async deploy(buildContext, phases) {
-    const templateUrl = `${buildContext.templatesUrl}main.json?${buildContext.templatesToken}`;
-
+  async deploy(phases) {
     await this._armClient.deployments.createOrUpdate(
       this._groupName,
       `${this._groupName}-main-deploy`,
       {
         properties: {
-          templateLink: { uri: templateUrl },
+          templateLink: { uri: this._templateUrl },
           parameters: {
             phases: {
               value: phases

@@ -2,12 +2,12 @@ const storageHelper = require('../util/storageHelper');
 const AzCommand = require('../util/azCommand');
 
 class Publisher {
-  constructor(deployEnv, config) {
-    this._deployEnv = deployEnv;
-    this._deployGroupName = config.deployment.rg;
-    this._deployStorageAccountName = config.deployment.storageAccountName;
-    this._templatesContainer = config.deployment.armTemplatesContainer;
-    this._buildOutputDir = `./tmp/${config.deployment.buildOutputTempDir}`;
+  constructor(pipelineContext) {
+    const conf = pipelineContext.config;
+    this._deployGroupName = conf.deployment.rg;
+    this._deployStorageAccountName = conf.deployment.storageAccountName;
+    this._templatesContainer = conf.deployment.armTemplatesContainer;
+    this._buildOutputDir = `./tmp/${conf.deployment.buildOutputTempDir}`;
   }
 
   async clean() {

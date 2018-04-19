@@ -1,6 +1,7 @@
 const fs = require('fs');
 const azureStorage = require('azure-storage');
-const storageHelper = require('../util/storageHelper');
+const _ = require('lodash');
+const storageHelper = require('./util/storageHelper');
 
 class DeploymentEnvironment {
   constructor(armClient, config) {
@@ -9,11 +10,49 @@ class DeploymentEnvironment {
     this._deployTags = config.deployment.tags;
     this._storageAccountName = config.deployment.storageAccountName;
     this._templatesContainer = config.deployment.armTemplatesContainer;
-    this._templatePath = 'src/resources/templates/modules/microsoft.storage/storage-encrypt-httpsonly.json'
+    this._templatePath = 'src/templates/modules/microsoft.storage/storage-encrypt-httpsonly.json'
     this._deployStorageDiagnosticsRetention = config.monitoring.retention.deployStorageDiagnostics;
+    this._location = config.location;
+    this._groupNames = [
+      config.deployment.rg,
+      config.secrets.rg,
+      config.monitoring.rg,
+      config.networking.rg,
+      config.app.rg
+    ];
   }
 
-  async setupStorage() {
+  async setup() {
+    await this._createGroups();
+    await this._setupStorage();
+  }
+
+  async teardown() {
+    await this._deleteGroups();
+  }
+
+  async _createGroups() {
+    console.log('Creating resource groups...');
+    const params = { location: this._location }
+    const promises = _.uniq(this._groupNames).map(name => {
+      return this._armClient.resourceGroups.createOrUpdate(name, params);
+    });
+
+    await Promise.all(promises);
+  }
+
+  async _deleteGroups() {
+    _.uniq(this._groupNames).reverse().forEach(async name => {
+      try {
+        await this._armClient.resourceGroups.deleteMethod(name);
+      } catch(error) {
+        console.log(`Failed to delete resource group ${name}.`);
+        console.log(error.message);
+      }
+    });
+  }
+
+  async _setupStorage() {
     // Deploy storage account
     const template = JSON.parse(fs.readFileSync(this._templatePath, 'utf8'));
     await this._armClient.deployments.createOrUpdate(

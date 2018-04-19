@@ -1,41 +1,29 @@
-const fs = require('fs');
-const AzCommand = require('../util/azCommand');
+const AzCommand = require('./azCommand');
 
-class Vault {
-  constructor(config) {
-    this._keyVaultName = config.secrets.keyVaultName;
-    this._apiCert = config.app.apim.cert;
-    this._aseCert = config.app.ase.cert;
-  }
-
-  async grantCertAccess(username) {
+class SecretsHelper {
+  async grantCertAccess(keyVaultNme, username) {
     await AzCommand.exec('keyvault set-policy', {
-      name: this._keyVaultName,
+      name: keyVaultName,
       upn: username,
-      'certificate-permissions': ['get', 'upload']
+      'certificate-permissions': ['get', 'create']
     });
   }
 
-  async setupSecrets() {
-    await this._setupCert(this._apiCert);
-    await this._setupCert(this._aseCert);
-  }
-
-  async getCertPublicKey(secretName) {
+  async getCertPublicKey(keyVaultName, secretName) {
     return await AzCommand.exec('keyvault certificate show', {
       name: secretName,
-      'vault-name': this._keyVaultName,
+      'vault-name': keyVaultName,
       query: 'cer',
       output: 'tsv'
     });
   }
 
-  async _setupCert(certConfig) {
+  async generateCert(keyVaultName, certConfig) {
     const policyJson = JSON.stringify(this._getCertPolicy(certConfig.cn, certConfig.san));
     await AzCommand.exec('keyvault certificate create', {
       name: certConfig.name,
       policy: policyJson,
-      'vault-name': this._keyVaultName
+      'vault-name': keyVaultName
     });
   }
 
@@ -61,4 +49,4 @@ class Vault {
   }
 }
 
-module.exports = Vault;
+module.exports = new SecretsHelper();

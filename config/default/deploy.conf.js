@@ -5,7 +5,7 @@ module.exports = function(context) {
     storageAccountName: `${alphanumPrefix}deploy`,
     armTemplatesContainer: 'arm-templates',
     buildOutputTempDir: 'build',
-    buildInputDir: 'src/resources/templates',
+    buildInputDir: 'src/templates',
     tags: { Tier: 'Deploy', ...baseTags }
   };
 }

@@ -3,10 +3,11 @@ const glob = require('glob');
 const Compiler = require('./compiler');
 
 class Builder {
-  constructor(buildContext, config) {
-    this._outputDir = `./tmp/${config.deployment.buildOutputTempDir}`;
-    this._inputDir = config.deployment.buildInputDir;
-    this._compiler = new Compiler(Object.assign({}, config, buildContext));
+  constructor(pipelineContext) {
+    const conf = pipelineContext.config;
+    this._outputDir = `./tmp/${conf.deployment.buildOutputTempDir}`;
+    this._inputDir = conf.deployment.buildInputDir;
+    this._compiler = new Compiler(conf);
   }
 
   async clean() {
