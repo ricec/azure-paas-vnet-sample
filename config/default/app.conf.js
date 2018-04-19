@@ -17,9 +17,6 @@ module.exports = function(context) {
       portalSubdomain: 'docs',
       scmSubdomain: 'scm'
     },
-    workService: {
-      name: 'chrrice-test-rxng'
-    },
     tags: { Tier: 'App', ...baseTags }
   };
 

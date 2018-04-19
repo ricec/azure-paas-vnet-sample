@@ -2,7 +2,7 @@ function config(environment, domain) {
   const context = {
     environment: environment,
     domain: domain,
-    prefix: `rxng-${environment}`,
+    prefix: `sampleapp-${environment}`,
     baseTags: {
       Environment: environment,
       OwnerTeam: 'TheTeam',
