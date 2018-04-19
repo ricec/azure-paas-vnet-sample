@@ -12,7 +12,7 @@ function config(environment, domain) {
   };
   context.alphanumPrefix = context.prefix.replace(/-/g, '');
 
-  return {
+  const conf = {
     location: 'South Central US',
     deployment: require('./default/deploy.conf')(context),
     secrets: require('./default/secrets.conf')(context),
@@ -21,6 +21,14 @@ function config(environment, domain) {
     app: require('./default/app.conf')(context),
     services: require('./default/services.conf')(context)
   };
+
+  conf.resourceGroups = [
+    conf.deployment.rg,
+    conf.secrets.rg,
+    conf.monitoring.rg,
+    conf.networking.rg,
+    conf.app.rg
+  ];
 }
 
 const _ = require('lodash');

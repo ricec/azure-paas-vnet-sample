@@ -13,13 +13,7 @@ class DeploymentEnvironment {
     this._templatePath = 'src/templates/modules/microsoft.storage/storage-encrypt-httpsonly.json'
     this._deployStorageDiagnosticsRetention = config.monitoring.retention.deployStorageDiagnostics;
     this._location = config.location;
-    this._groupNames = [
-      config.deployment.rg,
-      config.secrets.rg,
-      config.monitoring.rg,
-      config.networking.rg,
-      config.app.rg
-    ];
+    this._groupNames = config.resourceGroups;
   }
 
   async setup() {
