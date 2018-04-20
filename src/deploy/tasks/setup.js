@@ -2,7 +2,7 @@
 
 const PipelineContext = require('../pipelineContext');
 const Pipeline = require('../pipeline');
-const config = require('./config');
+const config = require('../config');
 const secretsHelper = require('../util/secretsHelper');
 
 async function runSetup() {
@@ -19,7 +19,7 @@ async function runSetup() {
   const aseCert = config.app.ase.cert;
 
   console.log('Setting up secrets...');
-  await secretsHelper.grantCertAccess(ctx.account.user.name);
+  await secretsHelper.grantCertAccess(keyVaultName, ctx.account.user.name);
   await secretsHelper.generateCert(keyVaultName, apiCert);
   await secretsHelper.generateCert(keyVaultName, aseCert);
 }

@@ -29,6 +29,8 @@ function config(environment, domain) {
     conf.networking.rg,
     conf.app.rg
   ];
+
+  return conf;
 }
 
 const _ = require('lodash');

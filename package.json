@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "setup": "./src/build/tasks/setup.js",
-    "deploy": "./src/build/tasks/deploy.js",
-    "teardown": "./src/build/tasks/teardown.js"
+    "setup": "./src/deploy/tasks/setup.js",
+    "deploy": "./src/deploy/tasks/deploy.js",
+    "teardown": "./src/deploy/tasks/teardown.js"
   },
   "dependencies": {
     "azure": "^2.2.1-preview",

@@ -8,7 +8,7 @@ async function runTeardown() {
   const ctx = await PipelineContext.acquire(config);
 
   console.log('Deleting resources...');
-  await ctx.deployEnv.deleteGroups();
+  await ctx.deployEnv.teardown();
 }
 
 runTeardown();

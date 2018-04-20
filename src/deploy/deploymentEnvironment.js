@@ -94,7 +94,7 @@ class DeploymentEnvironment {
   async getTemplatesToken() {
     const startDate = new Date();
     const expiryDate = new Date(startDate);
-    expiryDate.setMinutes(startDate.getMinutes() + 60);
+    expiryDate.setMinutes(startDate.getMinutes() + 120);
 
     const permissions = azureStorage.BlobUtilities.SharedAccessPermissions;
     var sharedAccessPolicy = {

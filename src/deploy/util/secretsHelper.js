@@ -1,7 +1,7 @@
 const AzCommand = require('./azCommand');
 
 class SecretsHelper {
-  async grantCertAccess(keyVaultNme, username) {
+  async grantCertAccess(keyVaultName, username) {
     await AzCommand.exec('keyvault set-policy', {
       name: keyVaultName,
       upn: username,

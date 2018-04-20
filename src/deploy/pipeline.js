@@ -4,13 +4,12 @@ const Deployer = require('./deployer');
 
 class Pipeline {
   constructor(pipelineContext, phases) {
-    this._builder = new Builder(pipelineContext);
-    this._publisher = new Publisher(pipelineContext);
-    this._deployer = new Deployer(pipelineContext);
+    this._pipelineContext = pipelineContext;
     this._phases = phases;
   }
 
   async run() {
+    await this._pipelineContext.prepareConfig();
     await this.build();
     await this.publish();
     await this.deploy();
@@ -18,19 +17,22 @@ class Pipeline {
 
   async build() {
     console.log('Building templates...');
-    await this._builder.clean();
-    await this._builder.build();
+    const builder = new Builder(this._pipelineContext);
+    await builder.clean();
+    await builder.build();
   }
 
   async publish() {
     console.log('Publishing templates to Azure storage...');
-    await this._publisher.clean();
-    await this._publisher.publish();
+    const publisher = new Publisher(this._pipelineContext);
+    await publisher.clean();
+    await publisher.publish();
   }
 
   async deploy() {
     console.log('Deploying resources...');
-    await this._deployer.deploy(this._phases);
+    const deployer = new Deployer(this._pipelineContext);
+    await deployer.deploy(this._phases);
   }
 }
 

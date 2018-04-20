@@ -1,5 +1,5 @@
-const storageHelper = require('../util/storageHelper');
-const AzCommand = require('../util/azCommand');
+const storageHelper = require('./util/storageHelper');
+const AzCommand = require('./util/azCommand');
 
 class Publisher {
   constructor(pipelineContext) {

@@ -18,6 +18,9 @@ class PipelineContext {
     );
 
     this.deployEnv = new DeploymentEnvironment(this.armClient, this.config);
+  }
+
+  async prepareConfig() {
     this.config.templatesUrl =  await this.deployEnv.getTemplatesUrl();
     this.config.templatesToken = await this.deployEnv.getTemplatesToken();
 
