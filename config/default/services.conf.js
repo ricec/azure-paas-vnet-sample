@@ -6,7 +6,6 @@ module.exports = function(context) {
       default: {
         name: `${prefix}-default-asp`,
         tier: '1',
-        capacity: 1,
         tags: tags
       }
     },

@@ -20,13 +20,6 @@
         "description": "Defines pricing tier for workers: 1 = Isolated 1, 2 = Isolated 2, 3 = Isolated 3."
       }
     },
-    "capacity": {
-      "type": "int",
-      "defaultValue": 1,
-      "metadata": {
-        "description": "Defines the number of instances that will be allocated to the app service plan."
-      }
-    },
     "tags": {
       "defaultValue": {},
       "type": "object"
@@ -36,7 +29,7 @@
     {
       "name": "[parameters('planName')]",
       "type": "Microsoft.Web/serverfarms",
-      "apiVersion": "2015-08-01",
+      "apiVersion": "2016-09-01",
       "location": "[resourceGroup().location]",
       "tags": "[parameters('tags')]",
       "properties": {
@@ -49,8 +42,7 @@
         "name": "[concat('I',parameters('pricingTier'))]",
         "tier": "Isolated",
         "size": "[concat('I',parameters('pricingTier'))]",
-        "family": "I",
-        "capacity": "[parameters('capacity')]"
+        "family": "I"
       }
     }
   ]

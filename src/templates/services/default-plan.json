@@ -22,10 +22,6 @@
       "type": "string",
       "defaultValue": "{{services.plans.default.tier}}"
     },
-    "appServicePlanCapacity": {
-      "type": "int",
-      "defaultValue": "[int({{services.plans.default.capacity}})]"
-    },
     "tags": {
       "type": "object",
       "defaultValue": "[json('{{json services.plans.default.tags}}')]"
@@ -50,9 +46,6 @@
           },
           "pricingTier": {
             "value": "[parameters('appServicePlanPricingTier')]"
-          },
-          "capacity": {
-            "value": "[parameters('appServicePlanCapacity')]"
           },
           "tags": {
             "value": "[parameters('tags')]"
