@@ -4,7 +4,7 @@ module.exports = function(context) {
     rg: `${prefix}-networking`,
     vnetName: `${prefix}-vnet`,
     vnetAddressPrefix: '172.16.0.0/16',
-    dnsServers: ['172.16.3.4'],
+    dnsServers: [],
     defaultSubnetName: `${prefix}-default`,
     defaultSubnetAddressPrefix: '172.16.3.0/24',
     apimSubnetName: `${prefix}-apim`,
